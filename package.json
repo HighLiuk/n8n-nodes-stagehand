@@ -1,5 +1,5 @@
 {
-	"name": "n8n-nodes-stagehand",
+	"name": "@highliuk/n8n-nodes-stagehand",
 	"version": "0.1.0",
 	"description": "Stagehand.dev custom nodes for n8n",
 	"keywords": [

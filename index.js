@@ -1,9 +1,4 @@
-import { PlaywrightNode } from './nodes/playwright/Playwright.node';
-import { StagehandNode } from './nodes/stagehand/Stagehand.node';
-
-export { PlaywrightNode, StagehandNode };
-
 module.exports = {
-	Playwright: PlaywrightNode,
-	Stagehand: StagehandNode,
+	nodes: ['dist/nodes/Stagehand/Stagehand.node.js', 'dist/nodes/Playwright/Playwright.node.js'],
+	credentials: [],
 };

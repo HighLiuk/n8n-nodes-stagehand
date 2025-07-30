@@ -6,7 +6,7 @@ import type {
 	INodeType,
 	INodeTypeDescription,
 } from 'n8n-workflow';
-import { assert, NodeConnectionType } from 'n8n-workflow';
+import { ApplicationError, assert, NodeConnectionType } from 'n8n-workflow';
 import { Stagehand } from '@browserbasehq/stagehand';
 
 export class StagehandNode implements INodeType {
@@ -17,7 +17,7 @@ export class StagehandNode implements INodeType {
 		group: ['transform'],
 		version: 1,
 		subtitle: '={{$parameter["operation"]}}',
-		description: 'Controlla browser utilizzando Stagehand con CDP URL',
+		description: 'Control browser using Stagehand with CDP URL',
 		defaults: {
 			name: 'Stagehand',
 		},
@@ -42,20 +42,20 @@ export class StagehandNode implements INodeType {
 					{
 						name: 'Act',
 						value: 'act',
-						description: "Esegui un'azione sulla pagina usando linguaggio naturale",
-						action: "Esegui un'azione sulla pagina",
+						description: 'Execute an action on the page using natural language',
+						action: 'Execute an action on the page',
 					},
 					{
 						name: 'Extract',
 						value: 'extract',
-						description: 'Estrai dati strutturati dalla pagina',
-						action: 'Estrai dati dalla pagina',
+						description: 'Extract structured data from the page',
+						action: 'Extract data from the page',
 					},
 					{
 						name: 'Observe',
 						value: 'observe',
-						description: "Osserva la pagina e pianifica un'azione",
-						action: 'Osserva la pagina',
+						description: 'Observe the page and plan an action',
+						action: 'Observe the page',
 					},
 				],
 				default: 'act',
@@ -66,7 +66,7 @@ export class StagehandNode implements INodeType {
 				type: 'string',
 				default: '',
 				placeholder: 'ws://localhost:9222/devtools/browser/...',
-				description: 'Chrome DevTools Protocol URL per connettersi al browser',
+				description: 'Chrome DevTools Protocol URL to connect to the browser',
 				required: true,
 			},
 			// ACT operation
@@ -75,8 +75,8 @@ export class StagehandNode implements INodeType {
 				name: 'prompt',
 				type: 'string',
 				default: '',
-				placeholder: 'Clicca sul pulsante "Accedi"',
-				description: 'Il prompt da eseguire',
+				placeholder: 'Click the "Login" button',
+				description: 'The prompt to execute',
 				required: true,
 				displayOptions: {
 					show: {
@@ -90,8 +90,8 @@ export class StagehandNode implements INodeType {
 				name: 'instruction',
 				type: 'string',
 				default: '',
-				placeholder: 'Estrai il titolo della pagina',
-				description: 'Istruzione per estrarre i dati',
+				placeholder: 'Extract the page title',
+				description: 'Instruction to extract data',
 				required: true,
 				displayOptions: {
 					show: {
@@ -104,7 +104,7 @@ export class StagehandNode implements INodeType {
 				name: 'schema',
 				type: 'json',
 				default: '{"title": "string"}',
-				description: 'Schema JSON per la struttura dei dati da estrarre',
+				description: 'JSON schema for the structure of data to extract',
 				displayOptions: {
 					show: {
 						operation: ['extract'],
@@ -117,8 +117,8 @@ export class StagehandNode implements INodeType {
 				name: 'observeInstruction',
 				type: 'string',
 				default: '',
-				placeholder: 'Trova tutti i pulsanti cliccabili',
-				description: 'Istruzione per osservare la pagina',
+				placeholder: 'Find all clickable buttons',
+				description: 'Instruction to observe the page',
 				required: true,
 				displayOptions: {
 					show: {
@@ -198,7 +198,7 @@ export class StagehandNode implements INodeType {
 					}
 
 					default: {
-						throw new Error(`Operazione non supportata: ${operation}`);
+						throw new ApplicationError(`Unsupported operation: ${operation}`);
 					}
 				}
 			} finally {

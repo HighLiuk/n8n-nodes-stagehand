@@ -4,7 +4,7 @@ import type {
 	INodeType,
 	INodeTypeDescription,
 } from 'n8n-workflow';
-import { NodeConnectionType } from 'n8n-workflow';
+import { ApplicationError, NodeConnectionType } from 'n8n-workflow';
 import { chromium } from 'playwright';
 
 export class PlaywrightNode implements INodeType {
@@ -15,7 +15,7 @@ export class PlaywrightNode implements INodeType {
 		group: ['transform'],
 		version: 1,
 		subtitle: '={{$parameter["operation"]}}',
-		description: 'Controlla browser utilizzando Playwright direttamente con CDP URL',
+		description: 'Control browser using Playwright directly with CDP URL',
 		defaults: {
 			name: 'Playwright',
 		},
@@ -32,20 +32,20 @@ export class PlaywrightNode implements INodeType {
 					{
 						name: 'Get Executable Path',
 						value: 'executablePath',
-						description: 'Ottieni il percorso eseguibile di Chromium',
-						action: 'Ottieni executable path',
+						description: 'Get the Chromium executable path',
+						action: 'Get executable path',
 					},
 					{
 						name: 'Goto',
 						value: 'goto',
-						description: 'Naviga a una specifica URL',
-						action: 'Naviga a una URL',
+						description: 'Navigate to a specific URL',
+						action: 'Navigate to a URL',
 					},
 					{
 						name: 'Screenshot',
 						value: 'screenshot',
-						description: 'Cattura uno screenshot della pagina',
-						action: 'Cattura uno screenshot',
+						description: 'Capture a page screenshot',
+						action: 'Capture a screenshot',
 					},
 				],
 				default: 'executablePath',
@@ -56,7 +56,7 @@ export class PlaywrightNode implements INodeType {
 				type: 'string',
 				default: '',
 				placeholder: 'ws://localhost:9222/devtools/browser/...',
-				description: 'Chrome DevTools Protocol URL per connettersi al browser',
+				description: 'Chrome DevTools Protocol URL to connect to the browser',
 				required: true,
 				displayOptions: {
 					hide: {
@@ -71,7 +71,7 @@ export class PlaywrightNode implements INodeType {
 				type: 'string',
 				default: '',
 				placeholder: 'https://example.com',
-				description: "L'URL a cui navigare",
+				description: 'The URL to navigate to',
 				required: true,
 				displayOptions: {
 					show: {
@@ -85,7 +85,7 @@ export class PlaywrightNode implements INodeType {
 				name: 'fullPage',
 				type: 'boolean',
 				default: false,
-				description: 'Cattura la pagina intera invece che solo la viewport',
+				description: 'Whether to capture the full page instead of just the viewport',
 				displayOptions: {
 					show: {
 						operation: ['screenshot'],
@@ -101,7 +101,7 @@ export class PlaywrightNode implements INodeType {
 					minValue: 0,
 					maxValue: 100,
 				},
-				description: 'Qualità dello screenshot (0-100, solo per JPEG)',
+				description: 'Screenshot quality (0-100, JPEG only)',
 				displayOptions: {
 					show: {
 						operation: ['screenshot'],
@@ -175,7 +175,7 @@ export class PlaywrightNode implements INodeType {
 					}
 
 					default: {
-						throw new Error(`Operazione non supportata: ${operation}`);
+						throw new ApplicationError(`Unsupported operation: ${operation}`);
 					}
 				}
 			} finally {

@@ -7,7 +7,7 @@ import type {
 import { ApplicationError, NodeConnectionType } from 'n8n-workflow';
 import { chromium } from 'playwright';
 
-export class PlaywrightNode implements INodeType {
+export class Playwright implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Playwright',
 		name: 'playwright',

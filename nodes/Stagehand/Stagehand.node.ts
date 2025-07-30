@@ -7,9 +7,9 @@ import type {
 	INodeTypeDescription,
 } from 'n8n-workflow';
 import { ApplicationError, assert, NodeConnectionType } from 'n8n-workflow';
-import { Stagehand } from '@browserbasehq/stagehand';
+import { Stagehand as StagehandCore } from '@browserbasehq/stagehand';
 
-export class StagehandNode implements INodeType {
+export class Stagehand implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Stagehand',
 		name: 'stagehand',
@@ -134,7 +134,7 @@ export class StagehandNode implements INodeType {
 		const results: INodeExecutionData[] = [];
 		const model = await this.getInputConnectionData(NodeConnectionType.AiLanguageModel, 0);
 
-		assert(StagehandNode.isChatInstance(model), 'A Chat Model is required');
+		assert(Stagehand.isChatInstance(model), 'A Chat Model is required');
 		assert('model' in model, 'Model is not defined in the input connection data');
 		assert('apiKey' in model, 'API Key is not defined in the input connection data');
 		assert(typeof model.apiKey === 'string', 'API Key must be a string');
@@ -143,7 +143,7 @@ export class StagehandNode implements INodeType {
 			const operation = this.getNodeParameter('operation', i) as string;
 			const cdpUrl = this.getNodeParameter('cdpUrl', i, '') as string;
 
-			const stagehand = new Stagehand({
+			const stagehand = new StagehandCore({
 				env: 'LOCAL',
 				modelName: model.lc_namespace[2] + '/' + model.model,
 				modelClientOptions: {

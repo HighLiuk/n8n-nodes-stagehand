@@ -146,24 +146,24 @@ export class Stagehand implements INodeType {
 								type: 'options',
 								options: [
 									{
-										name: 'String',
-										value: 'string',
-									},
-									{
-										name: 'Number',
-										value: 'number',
+										name: 'Array',
+										value: 'array',
 									},
 									{
 										name: 'Boolean',
 										value: 'boolean',
 									},
 									{
-										name: 'Array',
-										value: 'array',
+										name: 'Number',
+										value: 'number',
 									},
 									{
 										name: 'Object',
 										value: 'object',
+									},
+									{
+										name: 'String',
+										value: 'string',
 									},
 								],
 								default: 'string',
@@ -224,7 +224,6 @@ export class Stagehand implements INodeType {
 				name: 'manualZod',
 				type: 'string',
 				typeOptions: { rows: 6 },
-				description: 'z.object({ ... })',
 				displayOptions: {
 					show: {
 						operation: ['extract'],

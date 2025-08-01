@@ -1,5 +1,5 @@
 {
-	"name": "@highliuk/n8n-nodes-stagehand",
+	"name": "n8n-nodes-stagehand",
 	"version": "1.0.1",
 	"description": "Stagehand.dev custom nodes for n8n",
 	"keywords": [
@@ -21,7 +21,7 @@
 	"scripts": {
 		"build": "npx rimraf dist && tsc && gulp build:icons",
 		"dev": "tsc --watch",
-		"format": "prettier nodes credentials --write",
+		"format": "prettier nodes --write",
 		"lint": "eslint nodes package.json",
 		"lintfix": "eslint nodes package.json --fix",
 		"prepublishOnly": "npm run build && npm run lint -c .eslintrc.prepublish.js nodes package.json"
@@ -33,8 +33,8 @@
 		"n8nNodesApiVersion": 1,
 		"credentials": [],
 		"nodes": [
-			"dist/nodes/Stagehand/Stagehand.node.js",
-			"dist/nodes/Playwright/Playwright.node.js"
+			"dist/nodes/Playwright/Playwright.node.js",
+			"dist/nodes/Stagehand/Stagehand.node.js"
 		]
 	},
 	"devDependencies": {

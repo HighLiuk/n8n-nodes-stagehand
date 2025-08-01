@@ -8,6 +8,9 @@ import type {
 } from 'n8n-workflow';
 import { ApplicationError, assert, NodeConnectionType } from 'n8n-workflow';
 import { Stagehand as StagehandCore } from '@browserbasehq/stagehand';
+import { z } from 'zod';
+import jsonToZod from 'json-to-zod';
+import jsonSchemaToZod from 'json-schema-to-zod';
 
 export class Stagehand implements INodeType {
 	description: INodeTypeDescription = {
@@ -69,62 +72,84 @@ export class Stagehand implements INodeType {
 				description: 'Chrome DevTools Protocol URL to connect to the browser',
 				required: true,
 			},
-			// ACT operation
-			{
-				displayName: 'Prompt',
-				name: 'prompt',
-				type: 'string',
-				default: '',
-				placeholder: 'Click the "Login" button',
-				description: 'The prompt to execute',
-				required: true,
-				displayOptions: {
-					show: {
-						operation: ['act'],
-					},
-				},
-			},
-			// EXTRACT operation
 			{
 				displayName: 'Instruction',
 				name: 'instruction',
 				type: 'string',
 				default: '',
-				placeholder: 'Extract the page title',
-				description: 'Instruction to extract data',
+				description: 'Instruction for the Stagehand to perform',
 				required: true,
+			},
+			{
+				displayName: 'Schema Source',
+				name: 'schemaSource',
+				type: 'options',
+				options: [
+					{
+						name: 'Example JSON',
+						value: 'example',
+					},
+					{
+						name: 'JSON Schema',
+						value: 'jsonSchema',
+					},
+					{
+						name: 'Manual Zod',
+						value: 'manual',
+					},
+				],
 				displayOptions: {
 					show: {
 						operation: ['extract'],
 					},
 				},
+				default: 'example',
 			},
 			{
-				displayName: 'Schema',
-				name: 'schema',
+				displayName: 'Example JSON',
+				name: 'exampleJson',
 				type: 'json',
-				default: '{"title": "string"}',
-				description: 'JSON schema for the structure of data to extract',
+				typeOptions: {
+					rows: 4,
+				},
 				displayOptions: {
 					show: {
 						operation: ['extract'],
+						schemaSource: ['example'],
 					},
 				},
+				default: '{\n  "title": "My Title",\n  "description": "My Description"\n}',
 			},
-			// OBSERVE operation
 			{
-				displayName: 'Instruction',
-				name: 'observeInstruction',
-				type: 'string',
-				default: '',
-				placeholder: 'Find all clickable buttons',
-				description: 'Instruction to observe the page',
-				required: true,
+				displayName: 'JSON Schema',
+				name: 'jsonSchema',
+				type: 'json',
+				typeOptions: {
+					rows: 6,
+				},
 				displayOptions: {
 					show: {
-						operation: ['observe'],
+						operation: ['extract'],
+						schemaSource: ['jsonSchema'],
 					},
 				},
+				default:
+					'{\n  "$schema": "http://json-schema.org/draft-07/schema#",\n  "type": "object",\n  "properties": {\n    "title": { "type": "string", "description": "The page title" },\n    "description": { "type": "string", "description": "The page description" }\n  },\n  "required": ["title", "description"]\n}',
+			},
+			{
+				displayName: 'Zod Code',
+				name: 'manualZod',
+				type: 'string',
+				typeOptions: { rows: 6 },
+				description: 'z.object({ ... })',
+				displayOptions: {
+					show: {
+						operation: ['extract'],
+						schemaSource: ['manual'],
+					},
+				},
+				default:
+					'z.object({\n  title: z.string().describe("The page title"),\n  description: z.string().describe("The page description")\n})',
 			},
 		],
 	};
@@ -158,12 +183,12 @@ export class Stagehand implements INodeType {
 			try {
 				switch (operation) {
 					case 'act': {
-						const prompt = this.getNodeParameter('prompt', i, '') as string;
+						const instruction = this.getNodeParameter('instruction', i, '') as string;
 
 						results.push({
 							json: {
 								operation,
-								result: await stagehand.page.act(prompt),
+								result: await stagehand.page.act(instruction),
 							},
 						});
 						break;
@@ -171,14 +196,39 @@ export class Stagehand implements INodeType {
 
 					case 'extract': {
 						const instruction = this.getNodeParameter('instruction', i, '') as string;
-						const schemaParam = this.getNodeParameter('schema', i, '{}') as string;
+						const schemaSource = this.getNodeParameter('schemaSource', i, 'example') as string;
+
+						let schema: z.ZodObject<any>;
+						switch (schemaSource) {
+							case 'example': {
+								const example = this.getNodeParameter('exampleJson', i) as string;
+								schema = new Function('z', `${jsonToZod(JSON.parse(example))}return schema;`)(z);
+								break;
+							}
+
+							case 'jsonSchema': {
+								const jsonSchema = this.getNodeParameter('jsonSchema', i) as string;
+								schema = new Function('z', `return ${jsonSchemaToZod(JSON.parse(jsonSchema))};`)(z);
+								break;
+							}
+
+							case 'manual': {
+								const zodCode = this.getNodeParameter('manualZod', i) as string;
+								schema = new Function('z', `return ${zodCode};`)(z);
+								break;
+							}
+
+							default: {
+								throw new ApplicationError(`Unsupported schema source: ${schemaSource}`);
+							}
+						}
 
 						results.push({
 							json: {
 								operation,
 								result: await stagehand.page.extract({
 									instruction,
-									schema: JSON.parse(schemaParam),
+									schema,
 								}),
 							},
 						});
@@ -186,12 +236,14 @@ export class Stagehand implements INodeType {
 					}
 
 					case 'observe': {
-						const instruction = this.getNodeParameter('observeInstruction', i, '') as string;
+						const instruction = this.getNodeParameter('instruction', i, '') as string;
 
 						results.push({
 							json: {
 								operation,
-								result: await stagehand.page.observe(instruction),
+								result: await stagehand.page.observe({
+									instruction,
+								}),
 							},
 						});
 						break;

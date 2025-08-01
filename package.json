@@ -50,6 +50,8 @@
 		"n8n-workflow": "*"
 	},
 	"dependencies": {
-		"@browserbasehq/stagehand": "^2.4.1"
+		"@browserbasehq/stagehand": "^2.4.1",
+		"json-schema-to-zod": "^2.6.1",
+		"json-to-zod": "^1.1.2"
 	}
 }

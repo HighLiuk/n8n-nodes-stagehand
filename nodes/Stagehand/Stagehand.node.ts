@@ -8,9 +8,15 @@ import type {
 } from 'n8n-workflow';
 import { ApplicationError, assert, NodeConnectionType } from 'n8n-workflow';
 import { Stagehand as StagehandCore } from '@browserbasehq/stagehand';
-import { z } from 'zod';
+import { z, ZodTypeAny } from 'zod';
 import jsonToZod from 'json-to-zod';
 import jsonSchemaToZod from 'json-schema-to-zod';
+
+type Field = {
+	fieldName: string;
+	fieldType: string;
+	optional: boolean;
+};
 
 export class Stagehand implements INodeType {
 	description: INodeTypeDescription = {
@@ -86,6 +92,10 @@ export class Stagehand implements INodeType {
 				type: 'options',
 				options: [
 					{
+						name: 'Field List',
+						value: 'fieldList',
+					},
+					{
 						name: 'Example JSON',
 						value: 'example',
 					},
@@ -103,7 +113,78 @@ export class Stagehand implements INodeType {
 						operation: ['extract'],
 					},
 				},
-				default: 'example',
+				default: 'fieldList',
+				required: true,
+			},
+			{
+				displayName: 'Fields',
+				name: 'fields',
+				type: 'fixedCollection',
+				typeOptions: {
+					multipleValues: true,
+					multipleValueButtonText: 'Add Field',
+					minRequiredFields: 1,
+				},
+				default: [],
+				description: 'List of output fields and their types',
+				options: [
+					{
+						displayName: 'Field',
+						name: 'field',
+						values: [
+							{
+								displayName: 'Name',
+								name: 'fieldName',
+								type: 'string',
+								default: '',
+								description: 'Property name in the extracted object',
+								required: true,
+							},
+							{
+								displayName: 'Type',
+								name: 'fieldType',
+								type: 'options',
+								options: [
+									{
+										name: 'String',
+										value: 'string',
+									},
+									{
+										name: 'Number',
+										value: 'number',
+									},
+									{
+										name: 'Boolean',
+										value: 'boolean',
+									},
+									{
+										name: 'Array',
+										value: 'array',
+									},
+									{
+										name: 'Object',
+										value: 'object',
+									},
+								],
+								default: 'string',
+								required: true,
+							},
+							{
+								displayName: 'Optional',
+								name: 'optional',
+								type: 'boolean',
+								default: false,
+								required: true,
+							},
+						],
+					},
+				],
+				displayOptions: {
+					show: {
+						operation: ['extract'],
+						schemaSource: ['fieldList'],
+					},
+				},
 			},
 			{
 				displayName: 'Example JSON',
@@ -119,6 +200,7 @@ export class Stagehand implements INodeType {
 					},
 				},
 				default: '{\n  "title": "My Title",\n  "description": "My Description"\n}',
+				required: true,
 			},
 			{
 				displayName: 'JSON Schema',
@@ -135,6 +217,7 @@ export class Stagehand implements INodeType {
 				},
 				default:
 					'{\n  "$schema": "http://json-schema.org/draft-07/schema#",\n  "type": "object",\n  "properties": {\n    "title": { "type": "string", "description": "The page title" },\n    "description": { "type": "string", "description": "The page description" }\n  },\n  "required": ["title", "description"]\n}',
+				required: true,
 			},
 			{
 				displayName: 'Zod Code',
@@ -150,6 +233,7 @@ export class Stagehand implements INodeType {
 				},
 				default:
 					'z.object({\n  title: z.string().describe("The page title"),\n  description: z.string().describe("The page description")\n})',
+				required: true,
 			},
 		],
 	};
@@ -200,6 +284,12 @@ export class Stagehand implements INodeType {
 
 						let schema: z.ZodObject<any>;
 						switch (schemaSource) {
+							case 'fieldList': {
+								const fields = this.getNodeParameter('fields.field', i, []) as any[];
+								schema = Stagehand.fieldsToZodSchema(fields);
+								break;
+							}
+
 							case 'example': {
 								const example = this.getNodeParameter('exampleJson', i) as string;
 								schema = new Function('z', `${jsonToZod(JSON.parse(example))}return schema;`)(z);
@@ -265,5 +355,37 @@ export class Stagehand implements INodeType {
 		const namespace = (model as BaseLLM)?.lc_namespace ?? [];
 
 		return namespace.includes('chat_models');
+	}
+
+	static fieldsToZodSchema(fields: Field[]): z.ZodObject<any> {
+		const shape: Record<string, ZodTypeAny> = {};
+
+		for (const { fieldName, fieldType, optional } of fields) {
+			let zType: ZodTypeAny;
+
+			switch (fieldType) {
+				case 'string':
+					zType = z.string();
+					break;
+				case 'number':
+					zType = z.number();
+					break;
+				case 'boolean':
+					zType = z.boolean();
+					break;
+				case 'array':
+					zType = z.array(z.any());
+					break; // puoi espandere
+				case 'object':
+					zType = z.object({}).passthrough();
+					break;
+				default:
+					zType = z.any();
+			}
+
+			shape[fieldName] = optional ? zType.optional() : zType;
+		}
+
+		return z.object(shape);
 	}
 }

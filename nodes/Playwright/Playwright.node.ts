@@ -30,24 +30,6 @@ export class Playwright implements INodeType {
 				noDataExpression: true,
 				options: [
 					{
-						name: 'Get Executable Path',
-						value: 'executablePath',
-						description: 'Get the Chromium executable path',
-						action: 'Get executable path',
-					},
-					{
-						name: 'Goto',
-						value: 'goto',
-						description: 'Navigate to a specific URL',
-						action: 'Navigate to a URL',
-					},
-					{
-						name: 'Screenshot',
-						value: 'screenshot',
-						description: 'Capture a page screenshot',
-						action: 'Capture a screenshot',
-					},
-					{
 						name: 'Click',
 						value: 'click',
 						description: 'Click an element matching selector',
@@ -60,16 +42,40 @@ export class Playwright implements INodeType {
 						action: 'Fill input',
 					},
 					{
-						name: 'Type',
-						value: 'type',
-						description: 'Type text into an element',
-						action: 'Type text',
+						name: 'Get Executable Path',
+						value: 'executablePath',
+						description: 'Get the Chromium executable path',
+						action: 'Get executable path',
+					},
+					{
+						name: 'Goto',
+						value: 'goto',
+						description: 'Navigate to a specific URL',
+						action: 'Navigate to a URL',
 					},
 					{
 						name: 'Press',
 						value: 'press',
 						description: 'Press a key on an element',
 						action: 'Press key',
+					},
+					{
+						name: 'Screenshot',
+						value: 'screenshot',
+						description: 'Capture a page screenshot',
+						action: 'Capture a screenshot',
+					},
+					{
+						name: 'Type',
+						value: 'type',
+						description: 'Type text into an element',
+						action: 'Type text',
+					},
+					{
+						name: 'Wait For Load State',
+						value: 'waitForLoadState',
+						description: 'Wait for the page to load completely',
+						action: 'Wait for page load',
 					},
 					{
 						name: 'Wait For Selector',
@@ -82,12 +88,6 @@ export class Playwright implements INodeType {
 						value: 'waitForTimeout',
 						description: 'Wait for a specified duration',
 						action: 'Wait duration',
-					},
-					{
-						name: 'Wait For Load State',
-						value: 'waitForLoadState',
-						description: 'Wait for the page to load completely',
-						action: 'Wait for page load',
 					},
 				],
 				default: 'executablePath',
@@ -221,7 +221,7 @@ export class Playwright implements INodeType {
 				},
 			},
 			{
-				displayName: 'Duration (ms)',
+				displayName: 'Duration (Ms)',
 				name: 'duration',
 				type: 'number',
 				default: 1000,
@@ -237,7 +237,7 @@ export class Playwright implements INodeType {
 				},
 			},
 			{
-				displayName: 'Timeout (ms)',
+				displayName: 'Timeout (Ms)',
 				name: 'timeout',
 				type: 'number',
 				default: 1000,

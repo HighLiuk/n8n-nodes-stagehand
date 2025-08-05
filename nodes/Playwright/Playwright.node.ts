@@ -47,6 +47,48 @@ export class Playwright implements INodeType {
 						description: 'Capture a page screenshot',
 						action: 'Capture a screenshot',
 					},
+					{
+						name: 'Click',
+						value: 'click',
+						description: 'Click an element matching selector',
+						action: 'Click element',
+					},
+					{
+						name: 'Fill',
+						value: 'fill',
+						description: 'Fill an input element',
+						action: 'Fill input',
+					},
+					{
+						name: 'Type',
+						value: 'type',
+						description: 'Type text into an element',
+						action: 'Type text',
+					},
+					{
+						name: 'Press',
+						value: 'press',
+						description: 'Press a key on an element',
+						action: 'Press key',
+					},
+					{
+						name: 'Wait For Selector',
+						value: 'waitForSelector',
+						description: 'Wait for a selector to appear',
+						action: 'Wait for selector',
+					},
+					{
+						name: 'Wait For Timeout',
+						value: 'waitForTimeout',
+						description: 'Wait for a specified duration',
+						action: 'Wait duration',
+					},
+					{
+						name: 'Wait For Load State',
+						value: 'waitForLoadState',
+						description: 'Wait for the page to load completely',
+						action: 'Wait for page load',
+					},
 				],
 				default: 'executablePath',
 			},
@@ -105,6 +147,107 @@ export class Playwright implements INodeType {
 				displayOptions: {
 					show: {
 						operation: ['screenshot'],
+					},
+				},
+			},
+			// COMMON selector
+			{
+				displayName: 'Selector',
+				name: 'selector',
+				type: 'string',
+				default: '',
+				placeholder: 'css=button#submit',
+				description: 'Playwright selector of the element',
+				required: true,
+				displayOptions: {
+					show: {
+						operation: ['click', 'fill', 'type', 'press', 'waitForSelector'],
+					},
+				},
+			},
+			{
+				displayName: 'Text',
+				name: 'text',
+				type: 'string',
+				default: '',
+				description: 'Text to enter',
+				required: true,
+				displayOptions: {
+					show: {
+						operation: ['fill', 'type'],
+					},
+				},
+			},
+			{
+				displayName: 'Key',
+				name: 'key',
+				type: 'string',
+				default: 'Enter',
+				description: 'Keyboard key to press',
+				required: true,
+				displayOptions: {
+					show: {
+						operation: ['press'],
+					},
+				},
+			},
+			{
+				displayName: 'State',
+				name: 'state',
+				type: 'options',
+				options: [
+					{
+						name: 'Load',
+						value: 'load',
+						description: 'Wait for the load event',
+					},
+					{
+						name: 'DOM Content Loaded',
+						value: 'domcontentloaded',
+						description: 'Wait for the DOMContentLoaded event',
+					},
+					{
+						name: 'Network Idle',
+						value: 'networkidle',
+						description: 'Wait until there are no network connections for at least 500 ms',
+					},
+				],
+				default: 'load',
+				description: 'The state to wait for before proceeding',
+				displayOptions: {
+					show: {
+						operation: ['waitForLoadState'],
+					},
+				},
+			},
+			{
+				displayName: 'Duration (ms)',
+				name: 'duration',
+				type: 'number',
+				default: 1000,
+				typeOptions: {
+					minValue: 0,
+				},
+				description: 'Time to wait',
+				required: true,
+				displayOptions: {
+					show: {
+						operation: ['waitForTimeout'],
+					},
+				},
+			},
+			{
+				displayName: 'Timeout (ms)',
+				name: 'timeout',
+				type: 'number',
+				default: 1000,
+				typeOptions: {
+					minValue: 0,
+				},
+				description: 'Maximum time to wait for the selector to appear',
+				displayOptions: {
+					show: {
+						operation: ['waitForSelector', 'waitForLoadState'],
 					},
 				},
 			},
@@ -167,6 +310,93 @@ export class Playwright implements INodeType {
 									'image/jpeg',
 								),
 							},
+							json: {
+								operation,
+							},
+						});
+						break;
+					}
+
+					case 'click': {
+						const selector = this.getNodeParameter('selector', i, '') as string;
+
+						await page.click(selector);
+
+						results.push({
+							json: {
+								operation,
+							},
+						});
+						break;
+					}
+
+					case 'fill':
+					case 'type': {
+						const selector = this.getNodeParameter('selector', i, '') as string;
+						const text = this.getNodeParameter('text', i, '') as string;
+
+						await page.fill(selector, text);
+
+						results.push({
+							json: {
+								operation,
+							},
+						});
+						break;
+					}
+
+					case 'press': {
+						const selector = this.getNodeParameter('selector', i, '') as string;
+						const key = this.getNodeParameter('key', i, 'Enter') as string;
+
+						await page.press(selector, key);
+
+						results.push({
+							json: {
+								operation,
+							},
+						});
+						break;
+					}
+
+					case 'waitForTimeout': {
+						const duration = this.getNodeParameter('duration', i, 1000) as number;
+
+						await page.waitForTimeout(duration);
+
+						results.push({
+							json: {
+								operation,
+							},
+						});
+						break;
+					}
+
+					case 'waitForSelector': {
+						const selector = this.getNodeParameter('selector', i, '') as string;
+						const timeout = this.getNodeParameter('timeout', i, 1000) as number;
+
+						await page.waitForSelector(selector, { timeout });
+
+						results.push({
+							json: {
+								operation,
+							},
+						});
+						break;
+					}
+
+					case 'waitForLoadState': {
+						const state = this.getNodeParameter('state', i, 'load') as string;
+						const timeout = this.getNodeParameter('timeout', i, 1000) as number;
+
+						if (state !== 'load' && state !== 'domcontentloaded' && state !== 'networkidle') {
+							throw new ApplicationError(`Unsupported load state: ${state}`);
+						}
+
+						await page.waitForLoadState(state, { timeout });
+
+						results.push({
 							json: {
 								operation,
 							},

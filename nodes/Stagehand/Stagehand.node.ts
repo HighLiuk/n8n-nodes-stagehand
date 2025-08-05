@@ -245,15 +245,17 @@ export class Stagehand implements INodeType {
 		assert(Stagehand.isChatInstance(model), 'A Chat Model is required');
 		assert('model' in model, 'Model is not defined in the input connection data');
 		assert('apiKey' in model, 'API Key is not defined in the input connection data');
+		assert(typeof model.model === 'string', 'Model must be a string');
 		assert(typeof model.apiKey === 'string', 'API Key must be a string');
 
 		for (let i = 0; i < items.length; i++) {
 			const operation = this.getNodeParameter('operation', i) as string;
 			const cdpUrl = this.getNodeParameter('cdpUrl', i, '') as string;
 
+			const provider = model.model.includes('deepseek') ? 'deepseek' : model.lc_namespace[2];
 			const stagehand = new StagehandCore({
 				env: 'LOCAL',
-				modelName: model.lc_namespace[2] + '/' + model.model,
+				modelName: provider + '/' + model.model,
 				modelClientOptions: {
 					apiKey: model.apiKey,
 				},

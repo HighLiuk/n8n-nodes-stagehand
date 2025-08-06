@@ -241,14 +241,14 @@ export class Stagehand implements INodeType {
 				type: 'collection',
 				placeholder: 'Add Option',
 				default: {},
-				description: 'Opzioni avanzate',
+				description: 'Advanced options for Stagehand',
 				options: [
 					{
 						displayName: 'Enable Caching',
 						name: 'enableCaching',
 						type: 'boolean',
 						default: true,
-						description: 'Abilita la cache delle chiamate alle LLM',
+						description: 'Whether to enable caching for Stagehand operations',
 					},
 				],
 			},

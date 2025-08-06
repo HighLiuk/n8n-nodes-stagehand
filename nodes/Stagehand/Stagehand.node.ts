@@ -234,6 +234,24 @@ export class Stagehand implements INodeType {
 					'z.object({\n  title: z.string().describe("The page title"),\n  description: z.string().describe("The page description")\n})',
 				required: true,
 			},
+			// ADVANCED OPTIONS
+			{
+				displayName: 'Advanced Options',
+				name: 'options',
+				type: 'collection',
+				placeholder: 'Add Option',
+				default: {},
+				description: 'Opzioni avanzate',
+				options: [
+					{
+						displayName: 'Enable Caching',
+						name: 'enableCaching',
+						type: 'boolean',
+						default: true,
+						description: 'Abilita la cache delle chiamate alle LLM',
+					},
+				],
+			},
 		],
 	};
 
@@ -251,10 +269,12 @@ export class Stagehand implements INodeType {
 		for (let i = 0; i < items.length; i++) {
 			const operation = this.getNodeParameter('operation', i) as string;
 			const cdpUrl = this.getNodeParameter('cdpUrl', i, '') as string;
+			const enableCaching = this.getNodeParameter('options.enableCaching', i, true) as boolean;
 
 			const provider = model.model.includes('deepseek') ? 'deepseek' : model.lc_namespace[2];
 			const stagehand = new StagehandCore({
 				env: 'LOCAL',
+				enableCaching,
 				modelName: provider + '/' + model.model,
 				modelClientOptions: {
 					apiKey: model.apiKey,

@@ -6,8 +6,8 @@ import type {
 	INodeType,
 	INodeTypeDescription,
 } from 'n8n-workflow';
-import { ApplicationError, assert, NodeConnectionType } from 'n8n-workflow';
-import { Stagehand as StagehandCore } from '@browserbasehq/stagehand';
+import { ApplicationError, assert, NodeConnectionType, NodeOperationError } from 'n8n-workflow';
+import { LogLine, Stagehand as StagehandCore } from '@browserbasehq/stagehand';
 import { z, ZodTypeAny } from 'zod';
 import jsonToZod from 'json-to-zod';
 import jsonSchemaToZod from 'json-schema-to-zod';
@@ -250,6 +250,34 @@ export class Stagehand implements INodeType {
 						default: true,
 						description: 'Whether to enable caching for Stagehand operations',
 					},
+					{
+						displayName: 'Log Messages',
+						name: 'logMessages',
+						type: 'boolean',
+						default: false,
+						description: 'Whether to include Stagehand log messages in the node output',
+					},
+					{
+						displayName: 'Verbose Level',
+						name: 'verbose',
+						type: 'options',
+						options: [
+							{
+								name: 'No Logs',
+								value: 0,
+							},
+							{
+								name: 'Only Errors',
+								value: 1,
+							},
+							{
+								name: 'All Logs',
+								value: 2,
+							},
+						],
+						default: 0,
+						description: 'Level of verbosity for Stagehand internal logging',
+					},
 				],
 			},
 		],
@@ -270,11 +298,20 @@ export class Stagehand implements INodeType {
 			const operation = this.getNodeParameter('operation', i) as string;
 			const cdpUrl = this.getNodeParameter('cdpUrl', i, '') as string;
 			const enableCaching = this.getNodeParameter('options.enableCaching', i, true) as boolean;
+			const logMessages = this.getNodeParameter('options.logMessages', i, false) as boolean;
+			const verbose = this.getNodeParameter('options.verbose', i, 0) as 0 | 1 | 2;
 
+			const messages: LogLine[] = [];
 			const provider = model.model.includes('deepseek') ? 'deepseek' : model.lc_namespace[2];
 			const stagehand = new StagehandCore({
 				env: 'LOCAL',
 				enableCaching,
+				verbose,
+				logger: logMessages
+					? (message) => {
+							messages.push(message);
+						}
+					: undefined,
 				modelName: provider + '/' + model.model,
 				modelClientOptions: {
 					apiKey: model.apiKey,
@@ -294,6 +331,7 @@ export class Stagehand implements INodeType {
 							json: {
 								operation,
 								result: await stagehand.page.act(instruction),
+								...(logMessages ? { messages } : {}),
 							},
 						});
 						break;
@@ -341,6 +379,7 @@ export class Stagehand implements INodeType {
 									instruction,
 									schema,
 								}),
+								...(logMessages ? { messages } : {}),
 							},
 						});
 						break;
@@ -355,6 +394,7 @@ export class Stagehand implements INodeType {
 								result: await stagehand.page.observe({
 									instruction,
 								}),
+								...(logMessages ? { messages } : {}),
 							},
 						});
 						break;
@@ -364,6 +404,16 @@ export class Stagehand implements INodeType {
 						throw new ApplicationError(`Unsupported operation: ${operation}`);
 					}
 				}
+			} catch (error) {
+				results.push({
+					error: new NodeOperationError(this.getNode(), error as Error, {
+						message: `Error executing Stagehand operation: ${error.message}`,
+					}),
+					json: {
+						operation,
+						...(logMessages ? { messages } : {}),
+					},
+				});
 			} finally {
 				await stagehand.close();
 			}

@@ -36,6 +36,12 @@ export class Playwright implements INodeType {
 						action: 'Click element',
 					},
 					{
+						name: 'Evaluate JS',
+						value: 'evaluate',
+						description: 'Execute JavaScript in the page context',
+						action: 'Evaluate javascript',
+					},
+					{
 						name: 'Fill',
 						value: 'fill',
 						description: 'Fill an input element',
@@ -251,6 +257,23 @@ export class Playwright implements INodeType {
 					},
 				},
 			},
+			// EVALUATE operation
+			{
+				displayName: 'Script',
+				name: 'script',
+				type: 'string',
+				default: '',
+				description: 'JavaScript code to execute in the browser context',
+				required: true,
+				typeOptions: {
+					rows: 5,
+				},
+				displayOptions: {
+					show: {
+						operation: ['evaluate'],
+					},
+				},
+			},
 		],
 	};
 
@@ -395,6 +418,19 @@ export class Playwright implements INodeType {
 						}
 
 						await page.waitForLoadState(state, { timeout });
+
+						results.push({
+							json: {
+								operation,
+							},
+						});
+						break;
+					}
+
+					case 'evaluate': {
+						const script = this.getNodeParameter('script', i, '') as string;
+
+						await page.evaluate(script);
 
 						results.push({
 							json: {

@@ -4,7 +4,7 @@ import type {
 	INodeType,
 	INodeTypeDescription,
 } from 'n8n-workflow';
-import { ApplicationError, NodeConnectionType } from 'n8n-workflow';
+import { ApplicationError, NodeConnectionType, NodeOperationError } from 'n8n-workflow';
 import { chromium } from 'playwright';
 
 export class Playwright implements INodeType {
@@ -70,6 +70,12 @@ export class Playwright implements INodeType {
 						value: 'screenshot',
 						description: 'Capture a page screenshot',
 						action: 'Capture a screenshot',
+					},
+					{
+						name: 'Select Option',
+						value: 'selectOption',
+						description: 'Select an option in a dropdown',
+						action: 'Select option',
 					},
 					{
 						name: 'Type',
@@ -167,7 +173,7 @@ export class Playwright implements INodeType {
 				required: true,
 				displayOptions: {
 					show: {
-						operation: ['click', 'fill', 'type', 'press', 'waitForSelector'],
+						operation: ['click', 'fill', 'type', 'press', 'selectOption', 'waitForSelector'],
 					},
 				},
 			},
@@ -194,6 +200,19 @@ export class Playwright implements INodeType {
 				displayOptions: {
 					show: {
 						operation: ['press'],
+					},
+				},
+			},
+			{
+				displayName: 'Option Value',
+				name: 'value',
+				type: 'string',
+				default: '',
+				description: 'Value of the option to select',
+				required: true,
+				displayOptions: {
+					show: {
+						operation: ['selectOption'],
 					},
 				},
 			},
@@ -242,21 +261,6 @@ export class Playwright implements INodeType {
 					},
 				},
 			},
-			{
-				displayName: 'Timeout (Ms)',
-				name: 'timeout',
-				type: 'number',
-				default: 1000,
-				typeOptions: {
-					minValue: 0,
-				},
-				description: 'Maximum time to wait for the selector to appear',
-				displayOptions: {
-					show: {
-						operation: ['waitForSelector', 'waitForLoadState'],
-					},
-				},
-			},
 			// EVALUATE operation
 			{
 				displayName: 'Script',
@@ -273,6 +277,27 @@ export class Playwright implements INodeType {
 						operation: ['evaluate'],
 					},
 				},
+			},
+			// ADVANCED OPTIONS
+			{
+				displayName: 'Advanced Options',
+				name: 'options',
+				type: 'collection',
+				placeholder: 'Add Option',
+				default: {},
+				description: 'Advanced options for Playwright actions',
+				options: [
+					{
+						displayName: 'Timeout (Ms)',
+						name: 'timeout',
+						type: 'number',
+						default: 30000,
+						typeOptions: {
+							minValue: 0,
+						},
+						description: 'Maximum time to wait for the operation to complete',
+					},
+				],
 			},
 		],
 	};
@@ -296,6 +321,7 @@ export class Playwright implements INodeType {
 
 			// For other operations, connect to browser
 			const cdpUrl = this.getNodeParameter('cdpUrl', i, '') as string;
+			const timeout = this.getNodeParameter('options.timeout', i, 30000) as number;
 			const browser = await chromium.connectOverCDP(cdpUrl);
 			const context = browser.contexts()[0] ?? (await browser.newContext());
 			const page = context.pages()[0] ?? (await context.newPage());
@@ -305,7 +331,7 @@ export class Playwright implements INodeType {
 					case 'goto': {
 						const url = this.getNodeParameter('url', i, '') as string;
 
-						await page.goto(url);
+						await page.goto(url, { timeout });
 
 						results.push({
 							json: {
@@ -323,6 +349,7 @@ export class Playwright implements INodeType {
 							fullPage,
 							quality,
 							type: 'jpeg',
+							timeout,
 						});
 
 						results.push({
@@ -343,7 +370,7 @@ export class Playwright implements INodeType {
 					case 'click': {
 						const selector = this.getNodeParameter('selector', i, '') as string;
 
-						await page.click(selector);
+						await page.click(selector, { timeout });
 
 						results.push({
 							json: {
@@ -358,7 +385,21 @@ export class Playwright implements INodeType {
 						const selector = this.getNodeParameter('selector', i, '') as string;
 						const text = this.getNodeParameter('text', i, '') as string;
 
-						await page.fill(selector, text);
+						await page.fill(selector, text, { timeout });
+
+						results.push({
+							json: {
+								operation,
+							},
+						});
+						break;
+					}
+
+					case 'selectOption': {
+						const selector = this.getNodeParameter('selector', i, '') as string;
+						const value = this.getNodeParameter('value', i, '') as string;
+
+						await page.selectOption(selector, value, { timeout });
 
 						results.push({
 							json: {
@@ -372,7 +413,7 @@ export class Playwright implements INodeType {
 						const selector = this.getNodeParameter('selector', i, '') as string;
 						const key = this.getNodeParameter('key', i, 'Enter') as string;
 
-						await page.press(selector, key);
+						await page.press(selector, key, { timeout });
 
 						results.push({
 							json: {
@@ -397,7 +438,6 @@ export class Playwright implements INodeType {
 
 					case 'waitForSelector': {
 						const selector = this.getNodeParameter('selector', i, '') as string;
-						const timeout = this.getNodeParameter('timeout', i, 1000) as number;
 
 						await page.waitForSelector(selector, { timeout });
 
@@ -411,7 +451,6 @@ export class Playwright implements INodeType {
 
 					case 'waitForLoadState': {
 						const state = this.getNodeParameter('state', i, 'load') as string;
-						const timeout = this.getNodeParameter('timeout', i, 1000) as number;
 
 						if (state !== 'load' && state !== 'domcontentloaded' && state !== 'networkidle') {
 							throw new ApplicationError(`Unsupported load state: ${state}`);
@@ -430,7 +469,7 @@ export class Playwright implements INodeType {
 					case 'evaluate': {
 						const script = this.getNodeParameter('script', i, '') as string;
 
-						await page.evaluate(script);
+						await page.evaluate(script, { timeout });
 
 						results.push({
 							json: {
@@ -444,6 +483,13 @@ export class Playwright implements INodeType {
 						throw new ApplicationError(`Unsupported operation: ${operation}`);
 					}
 				}
+			} catch (error) {
+				results.push({
+					error: new NodeOperationError(this.getNode(), error as Error, {
+						message: 'Failed to execute Playwright operation',
+					}),
+					json: {},
+				});
 			} finally {
 				await browser.close();
 			}

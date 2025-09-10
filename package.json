@@ -33,6 +33,7 @@
 		"n8nNodesApiVersion": 1,
 		"credentials": [],
 		"nodes": [
+			"dist/nodes/CdpTools/CdpTools.node.js",
 			"dist/nodes/Playwright/Playwright.node.js",
 			"dist/nodes/Stagehand/Stagehand.node.js"
 		]

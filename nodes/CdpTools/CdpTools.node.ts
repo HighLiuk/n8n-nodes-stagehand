@@ -4,7 +4,7 @@ import type {
 	INodeType,
 	INodeTypeDescription,
 } from 'n8n-workflow';
-import { NodeConnectionType, NodeOperationError } from 'n8n-workflow';
+import { NodeConnectionType } from 'n8n-workflow';
 import {
 	ChatMessageContent,
 	CreateChatCompletionOptions,
@@ -46,38 +46,30 @@ export class CdpTools implements INodeType {
 		for (let i = 0; i < items.length; i++) {
 			const cdpUrl = this.getNodeParameter('url', i, '') as string;
 
-			try {
-				let tree = await getAccessibilityTree(cdpUrl);
-				const nodesMap = await getNodesMap(cdpUrl, tree);
-				const matches = tree.matchAll(/\[((?:\d+-)?\d+)\] /g);
+			let tree = await getAccessibilityTree(cdpUrl);
+			const nodesMap = await getNodesMap(cdpUrl, tree);
+			const matches = tree.matchAll(/\[((?:\d+-)?\d+)\] /g);
 
-				let i = 0;
-				let offset = 0;
-				const xpaths = [];
-				for (const match of matches) {
-					const before = tree.slice(0, match.index + offset);
-					const after = tree.slice(match.index + match[0].length + offset);
-					const replace = `[${i}] `;
-					offset += replace.length - match[0].length;
-					tree = `${before}${replace}${after}`;
-					xpaths.push(nodesMap[match[1]]);
-					i++;
-				}
-
-				results.push({
-					json: {
-						accessibilityTree: tree,
-						xpaths,
-					},
-				});
-			} catch (error) {
-				results.push({
-					error: new NodeOperationError(this.getNode(), error as Error, {
-						message: 'Failed to get data from the page',
-					}),
-					json: {},
-				});
+			let j = 0;
+			let offset = 0;
+			const xpaths = [];
+			for (const match of matches) {
+				const before = tree.slice(0, match.index + offset);
+				const after = tree.slice(match.index + match[0].length + offset);
+				const replace = `[${j}] `;
+				offset += replace.length - match[0].length;
+				tree = `${before}${replace}${after}`;
+				xpaths.push(nodesMap[match[1]]);
+				j++;
 			}
+
+			results.push({
+				json: {
+					accessibilityTree: tree,
+					xpaths,
+				},
+			});
+
 			continue;
 		}
 

@@ -4,7 +4,7 @@ import type {
 	INodeType,
 	INodeTypeDescription,
 } from 'n8n-workflow';
-import { ApplicationError, NodeConnectionType, NodeOperationError } from 'n8n-workflow';
+import { ApplicationError, NodeConnectionType } from 'n8n-workflow';
 import { chromium } from 'playwright';
 
 export class Playwright implements INodeType {
@@ -483,13 +483,6 @@ export class Playwright implements INodeType {
 						throw new ApplicationError(`Unsupported operation: ${operation}`);
 					}
 				}
-			} catch (error) {
-				results.push({
-					error: new NodeOperationError(this.getNode(), error as Error, {
-						message: 'Failed to execute Playwright operation',
-					}),
-					json: {},
-				});
 			} finally {
 				await browser.close();
 			}

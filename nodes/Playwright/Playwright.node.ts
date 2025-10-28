@@ -3,9 +3,10 @@ import type {
 	INodeExecutionData,
 	INodeType,
 	INodeTypeDescription,
+	JsonObject,
 } from 'n8n-workflow';
-import { ApplicationError, NodeConnectionType } from 'n8n-workflow';
-import { chromium } from 'playwright';
+import { ApplicationError, NodeApiError, NodeConnectionType } from 'n8n-workflow';
+import { Browser, chromium } from 'playwright';
 
 export class Playwright implements INodeType {
 	description: INodeTypeDescription = {
@@ -321,7 +322,22 @@ export class Playwright implements INodeType {
 			// For other operations, connect to browser
 			const cdpUrl = this.getNodeParameter('cdpUrl', i, '') as string;
 			const timeout = this.getNodeParameter('options.timeout', i, 30000) as number;
-			const browser = await chromium.connectOverCDP(cdpUrl);
+			let browser: Browser;
+			try {
+				browser = await chromium.connectOverCDP(cdpUrl);
+			} catch (error: unknown) {
+				if (!this.continueOnFail()) {
+					throw error;
+				}
+
+				if (error instanceof Error) {
+					results.push({
+						json: { error },
+					});
+					continue;
+				}
+				throw error;
+			}
 			const context = browser.contexts()[0] ?? (await browser.newContext());
 			const page = context.pages()[0] ?? (await context.newPage());
 
@@ -481,6 +497,13 @@ export class Playwright implements INodeType {
 					default: {
 						throw new ApplicationError(`Unsupported operation: ${operation}`);
 					}
+				}
+			} catch (error: unknown) {
+				if (error instanceof Error) {
+					throw new NodeApiError(this.getNode(), error as unknown as JsonObject, {
+						message: `Operation "${operation}" failed: ${error.message}`,
+						description: error.stack,
+					});
 				}
 			} finally {
 				await browser.close();
